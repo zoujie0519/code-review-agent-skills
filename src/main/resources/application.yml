@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: code-review-agent-skills
+  ai:
+    openai:
+      enabled: true
+      base-url: https://ark.cn-beijing.volces.com/api/coding/v3
+      api-key: ${OPENAI_API_KEY:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: ark-code-latest
+          temperature: 0.3
+          max-tokens: 2000
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.jensen.codereview: DEBUG
+    org.springframework.ai: DEBUG
+    org.springframework.ai.openai: DEBUG
+
+code-review:
+  enabled: true
+  max-file-size: 1MB
+  supported-languages:
+    - java

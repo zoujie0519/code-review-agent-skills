@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="warning"/>
+    <property name="fileExtensions" value="java, properties, xml"/>
+
+    <!-- 检查文件长度 -->
+    <module name="FileLength">
+        <property name="max" value="1000"/>
+    </module>
+
+    <!-- 检查空行 -->
+    <module name="RegexpMultiline">
+        <property name="format" value="\r?\n[\r?\n]+"/>
+        <property name="message" value="多余的空行"/>
+    </module>
+
+    <module name="TreeWalker">
+        <!-- 命名规范 -->
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+        </module>
+        <module name="TypeName">
+            <property name="format" value="^[A-Z][a-zA-Z0-9]*$"/>
+        </module>
+        <module name="MethodName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+
+        <!-- 导入规范 -->
+        <module name="AvoidStarImport"/>
+        <module name="UnusedImports"/>
+
+        <!-- 代码风格 -->
+        <module name="LineLength">
+            <property name="max" value="120"/>
+        </module>
+        <module name="Indentation">
+            <property name="basicOffset" value="4"/>
+        </module>
+
+        <!-- 复杂度检查 -->
+        <module name="MethodLength">
+            <property name="max" value="50"/>
+        </module>
+        <module name="ParameterNumber">
+            <property name="max" value="7"/>
+        </module>
+    </module>
+</module>

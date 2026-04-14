@@ -1,0 +1,92 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.0'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'checkstyle'
+}
+
+group = 'com.jensen.codereview'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// 编译选项配置
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-parameters']
+}
+
+repositories {
+    maven { url 'https://maven.aliyun.com/repository/public' }
+    maven { url 'https://maven.aliyun.com/repository/spring' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:1.0.0"
+    }
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Spring AI
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    
+    // Utilities
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testCompileOnly 'org.projectlombok:lombok:1.18.34'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
+}
+
+// Checkstyle 配置
+checkstyle {
+    toolVersion = '10.12.5'
+    configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+    ignoreFailures = true  // 暂时忽略失败，避免阻塞构建
+    maxWarnings = 0
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// 清理时同时停止 Gradle 守护进程
+tasks.named('clean') {
+    doLast {
+        println '✅ 清理完成，如有文件锁定问题请运行: gradlew --stop'
+    }
+}
+
+bootJar {
+    archiveFileName = "${project.name}.jar"
+}
+
+// 创建可执行脚本任务
+tasks.register('prepareRunScript') {
+    doLast {
+        def scriptFile = file("run.sh")
+        scriptFile.text = """#!/bin/bash
+export OPENAI_API_KEY=\${OPENAI_API_KEY:-your-api-key-here}
+java -jar build/libs/${project.name}.jar
+"""
+        scriptFile.setExecutable(true)
+    }
+}
+
+bootJar.finalizedBy prepareRunScript

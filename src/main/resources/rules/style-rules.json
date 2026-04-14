@@ -1,0 +1,32 @@
+{
+  "rules": [
+    {
+      "id": "STYLE-001",
+      "name": "行长度限制",
+      "description": "代码行不应超过120个字符",
+      "severity": "MEDIUM",
+      "enabled": true
+    },
+    {
+      "id": "STYLE-002",
+      "name": "命名规范",
+      "description": "类名使用大驼峰，方法名使用小驼峰",
+      "severity": "MEDIUM",
+      "enabled": true
+    },
+    {
+      "id": "STYLE-003",
+      "name": "缩进规范",
+      "description": "使用4个空格缩进，不使用制表符",
+      "severity": "LOW",
+      "enabled": true
+    },
+    {
+      "id": "STYLE-004",
+      "name": "Package声明",
+      "description": "每个Java文件必须有package声明",
+      "severity": "MEDIUM",
+      "enabled": true
+    }
+  ]
+}

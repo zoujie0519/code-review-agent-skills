@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Review Agent - 能力验证</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        .input-section label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .result-section {
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .result-header h2 {
+            color: #333;
+        }
+
+        .execution-time {
+            background: #e3f2fd;
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        .report-output {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .sample-code {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .sample-code h3 {
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .sample-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .sample-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #ffc107;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .sample-btn:hover {
+            background: #ffc107;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Code Review Agent</h1>
+            <p>基于 Spring AI + Agent Skills 的智能代码审查系统</p>
+        </div>
+
+        <div class="content">
+            <!-- 状态栏 -->
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">检查服务状态...</span>
+                </div>
+                <div>
+                    <strong>API:</strong> <span id="apiUrl">http://localhost:8080</span>
+                </div>
+            </div>
+
+            <!-- 示例代码 -->
+            <div class="sample-code">
+                <h3>📝 快速测试 - 点击加载示例代码</h3>
+                <div class="sample-buttons">
+                    <button class="sample-btn" onclick="loadSample('good')">✅ 优质代码</button>
+                    <button class="sample-btn" onclick="loadSample('bad')">❌ 问题代码</button>
+                    <button class="sample-btn" onclick="loadSample('security')">🔒 安全问题</button>
+                    <button class="sample-btn" onclick="clearCode()">🗑️ 清空</button>
+                </div>
+            </div>
+
+            <!-- 输入区域 -->
+            <div class="input-section">
+                <label for="codeInput">请输入要审查的 Java 代码：</label>
+                <textarea 
+                    id="codeInput" 
+                    class="code-input" 
+                    placeholder="// 在这里粘贴你的 Java 代码...
+public class Example {
+    public void method() {
+        System.out.println(&quot;Hello World&quot;);
+    }
+}"
+                ></textarea>
+            </div>
+
+            <!-- 按钮组 -->
+            <div class="button-group">
+                <button class="btn btn-primary" id="reviewBtn" onclick="submitReview()">
+                    🚀 开始审查
+                </button>
+                <button class="btn btn-secondary" onclick="clearResult()">
+                    🔄 清除结果
+                </button>
+            </div>
+
+            <!-- 错误信息 -->
+            <div class="error-message" id="errorMessage"></div>
+
+            <!-- 加载中 -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在进行智能代码审查，请稍候...</p>
+                <p style="color: #666; font-size: 14px;">AI 正在分析代码风格、安全性、性能和最佳实践</p>
+            </div>
+
+            <!-- 结果区域 -->
+            <div class="result-section" id="resultSection">
+                <div class="result-header">
+                    <h2>📊 审查报告</h2>
+                    <span class="execution-time" id="executionTime"></span>
+                </div>
+                <div class="report-output" id="reportOutput"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+
+        // 页面加载时检查服务状态
+        window.onload = function() {
+            checkHealth();
+        };
+
+        // 检查服务健康状态
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/api/review/health`);
+                if (response.ok) {
+                    document.getElementById('statusDot').classList.add('online');
+                    document.getElementById('statusText').textContent = '服务正常运行';
+                } else {
+                    throw new Error('服务异常');
+                }
+            } catch (error) {
+                document.getElementById('statusText').textContent = '服务未启动或无法连接';
+                showError('无法连接到服务器，请确保应用已启动在 http://localhost:8080');
+            }
+        }
+
+        // 提交代码审查
+        async function submitReview() {
+            const code = document.getElementById('codeInput').value.trim();
+            
+            if (!code) {
+                showError('请输入要审查的代码');
+                return;
+            }
+
+            // 隐藏之前的结果和错误
+            hideError();
+            document.getElementById('resultSection').classList.remove('show');
+            
+            // 显示加载状态
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('reviewBtn').disabled = true;
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/api/review/code`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        fileName: 'Test.java'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const executionTime = Date.now() - startTime;
+
+                // 显示结果
+                showResult(data.report, data.executionTimeMs || executionTime);
+                
+            } catch (error) {
+                showError(`审查失败: ${error.message}`);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('reviewBtn').disabled = false;
+            }
+        }
+
+        // 显示结果
+        function showResult(report, executionTime) {
+            document.getElementById('reportOutput').textContent = report;
+            document.getElementById('executionTime').textContent = `⏱️ ${executionTime}ms`;
+            document.getElementById('resultSection').classList.add('show');
+            
+            // 滚动到结果区域
+            document.getElementById('resultSection').scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        // 显示错误
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        // 隐藏错误
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+
+        // 清除结果
+        function clearResult() {
+            document.getElementById('resultSection').classList.remove('show');
+            hideError();
+        }
+
+        // 清空代码
+        function clearCode() {
+            document.getElementById('codeInput').value = '';
+            clearResult();
+        }
+
+        // 加载示例代码
+        function loadSample(type) {
+            const samples = {
+                good: `package com.example;
+
+/**
+ * 用户服务类
+ * @author Jensen
+ */
+public class UserService {
+    
+    private final UserRepository userRepository;
+    
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+    
+    /**
+     * 根据ID获取用户
+     * @param userId 用户ID
+     * @return 用户对象
+     */
+    public User getUserById(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+    }
+}`,
+                bad: `public class Test {
+    public void method() {
+        String name = "world";
+        System.out.println("Hello " + name);
+        
+        // 空catch块
+        try {
+            int result = 10 / 0;
+        } catch (Exception e) {
+        }
+        
+        // 使用==比较字符串
+        if (name == "test") {
+            System.out.println("match");
+        }
+        
+        // 魔法数字
+        if (age > 18) {
+            System.out.println("adult");
+        }
+    }
+}`,
+                security: `public class SecurityExample {
+    
+    public void loginUser(String username, String password) {
+        // SQL注入风险
+        String sql = "SELECT * FROM users WHERE username='" + username + "'";
+        
+        // 硬编码密码
+        String adminPassword = "admin123";
+        
+        if (password.equals(adminPassword)) {
+            System.out.println("Login successful");
+        }
+    }
+    
+    public void processFile(String filePath) {
+        // 资源可能未关闭
+        FileInputStream fis = new FileInputStream(filePath);
+        // 处理文件...
+    }
+}`
+            };
+
+            document.getElementById('codeInput').value = samples[type];
+            clearResult();
+        }
+    </script>
+</body>
+</html>

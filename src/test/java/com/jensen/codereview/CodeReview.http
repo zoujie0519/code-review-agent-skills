@@ -1,0 +1,153 @@
+### Code Review Agent API 测试
+### 基础 URL
+@baseUrl = http://localhost:8080
+
+###############################################
+# 1. 健康检查
+###############################################
+### GET /api/review/health - 健康检查
+GET {{baseUrl}}/api/review/health
+Accept: application/json
+
+###
+
+###############################################
+# 2. API 信息
+###############################################
+### GET /api/review - 获取 API 信息
+GET {{baseUrl}}/api/review
+Accept: application/json
+
+###
+
+###############################################
+# 3. AI 连接测试
+###############################################
+### GET /api/review/test-ai - 测试 AI 连接
+GET {{baseUrl}}/api/review/test-ai
+Accept: application/json
+
+###
+
+###############################################
+# 4. 代码审查 - 优质代码示例
+###############################################
+### POST /api/review/code - 审查优质代码
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "package com.example;\n\nimport java.util.List;\nimport java.util.ArrayList;\n\n/**\n * 用户服务类\n * @author Jensen\n * @since 1.0\n */\npublic class UserService {\n    \n    private final List<String> users = new ArrayList<>();\n    \n    /**\n     * 添加用户\n     * @param username 用户名\n     * @return 是否添加成功\n     */\n    public boolean addUser(String username) {\n        if (username == null || username.trim().isEmpty()) {\n            return false;\n        }\n        return users.add(username);\n    }\n    \n    /**\n     * 获取用户列表\n     * @return 用户列表副本\n     */\n    public List<String> getUsers() {\n        return new ArrayList<>(users);\n    }\n}",
+  "fileName": "UserService.java"
+}
+
+###
+
+###############################################
+# 5. 代码审查 - 问题代码示例
+###############################################
+### POST /api/review/code - 审查有问题的代码
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "package com.example;\n\nimport java.sql.*;\nimport java.util.*;\n\npublic class BadCodeExample {\n    \n    public void method1(String input) {\n        // SQL注入风险\n        String sql = \"SELECT * FROM users WHERE name='\" + input + \"'\";\n        System.out.println(sql);\n    }\n    \n    public void method2() {\n        // 空catch块\n        try {\n            int result = 10 / 0;\n        } catch (Exception e) {\n        }\n    }\n    \n    public void method3() {\n        // 魔法数字\n        if (age > 18 && score >= 60) {\n            System.out.println(\"Pass\");\n        }\n    }\n    \n    public String method4(String str) {\n        // 字符串比较错误\n        if (str == \"test\") {\n            return \"ok\";\n        }\n        return null;\n    }\n    \n    public void method5() throws Exception {\n        // 资源未关闭\n        FileInputStream fis = new FileInputStream(\"test.txt\");\n        fis.read();\n    }\n}",
+  "fileName": "BadCodeExample.java"
+}
+
+###
+
+###############################################
+# 6. 代码审查 - 安全问题示例
+###############################################
+### POST /api/review/code - 审查安全漏洞代码
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "package com.example;\n\nimport java.io.*;\nimport java.security.*;\n\npublic class SecurityIssues {\n    \n    private String password = \"admin123\"; // 硬编码密码\n    \n    public void processFile(String filename) throws Exception {\n        // 路径遍历漏洞\n        File file = new File(filename);\n        FileInputStream fis = new FileInputStream(file);\n    }\n    \n    public String hashPassword(String password) {\n        // 使用弱哈希算法\n        MessageDigest md = MessageDigest.getInstance(\"MD5\");\n        byte[] hash = md.digest(password.getBytes());\n        return bytesToHex(hash);\n    }\n    \n    public void logSensitiveData(String userData) {\n        // 记录敏感信息\n        System.out.println(\"User data: \" + userData);\n    }\n    \n    private String bytesToHex(byte[] bytes) {\n        StringBuilder sb = new StringBuilder();\n        for (byte b : bytes) {\n            sb.append(String.format(\"%02x\", b));\n        }\n        return sb.toString();\n    }\n}",
+  "fileName": "SecurityIssues.java"
+}
+
+###
+
+###############################################
+# 7. 代码审查 - 性能问题示例
+###############################################
+### POST /api/review/code - 审查性能问题代码
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "package com.example;\n\nimport java.util.*;\n\npublic class PerformanceIssues {\n    \n    public String concatenateStrings(List<String> strings) {\n        // 循环中使用+拼接字符串\n        String result = \"\";\n        for (String s : strings) {\n            result = result + s;\n        }\n        return result;\n    }\n    \n    public List<Integer> findDuplicates(List<Integer> list) {\n        // O(n²) 复杂度\n        List<Integer> duplicates = new ArrayList<>();\n        for (int i = 0; i < list.size(); i++) {\n            for (int j = i + 1; j < list.size(); j++) {\n                if (list.get(i).equals(list.get(j))) {\n                    duplicates.add(list.get(i));\n                }\n            }\n        }\n        return duplicates;\n    }\n    \n    public void processData() {\n        // 循环中创建对象\n        for (int i = 0; i < 1000; i++) {\n            SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd\");\n            System.out.println(sdf.format(new Date()));\n        }\n    }\n}",
+  "fileName": "PerformanceIssues.java"
+}
+
+###
+
+###############################################
+# 8. 代码审查 - 复杂代码示例
+###############################################
+### POST /api/review/code - 审查高复杂度代码
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "package com.example;\n\npublic class ComplexCode {\n    \n    public String evaluateScore(int score, String type, boolean isVip, int level) {\n        // 圈复杂度过高\n        if (score >= 90) {\n            if (type.equals(\"A\")) {\n                if (isVip) {\n                    if (level > 5) {\n                        return \"Excellent VIP\";\n                    } else {\n                        return \"Good VIP\";\n                    }\n                } else {\n                    return \"Excellent\";\n                }\n            } else if (type.equals(\"B\")) {\n                return \"Very Good\";\n            } else {\n                return \"Good\";\n            }\n        } else if (score >= 70) {\n            if (isVip && level > 3) {\n                return \"Average VIP\";\n            }\n            return \"Average\";\n        } else if (score >= 60) {\n            return \"Pass\";\n        } else {\n            if (type.equals(\"C\") || type.equals(\"D\")) {\n                return \"Fail\";\n            }\n            return \"Poor\";\n        }\n    }\n}",
+  "fileName": "ComplexCode.java"
+}
+
+###
+
+###############################################
+# 9. 代码审查 - 文档问题示例
+###############################################
+### POST /api/review/code - 审查文档缺失代码
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "package com.example;\n\nimport java.util.*;\n\npublic class NoDocumentation {\n    \n    public List calculate(List a, List b) {\n        List result = new ArrayList();\n        for (int i = 0; i < a.size(); i++) {\n            result.add(((Number)a.get(i)).doubleValue() + ((Number)b.get(i)).doubleValue());\n        }\n        return result;\n    }\n    \n    public void process(Map data, String flag) {\n        // TODO: 需要优化\n        // FIXME: 有bug\n        if (flag != null) {\n            data.put(\"status\", flag);\n        }\n    }\n    \n    public int transform(int x) {\n        return x * 3.14159 + 2.71828;\n    }\n}",
+  "fileName": "NoDocumentation.java"
+}
+
+###
+
+###############################################
+# 10. 边界情况测试
+###############################################
+### POST /api/review/code - 空代码测试
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "",
+  "fileName": "Empty.java"
+}
+
+###
+
+### POST /api/review/code - 单行代码测试
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "public class SingleLine {}",
+  "fileName": "SingleLine.java"
+}
+
+###
+
+###############################################
+# 11. 压力测试（可选）
+###############################################
+### POST /api/review/code - 较大代码文件
+POST {{baseUrl}}/api/review/code
+Content-Type: application/json
+
+{
+  "code": "package com.example;\n\nimport java.util.*;\nimport java.io.*;\nimport java.sql.*;\n\n/**\n * 综合测试类\n */\npublic class ComprehensiveTest {\n    private static final int MAX_SIZE = 1000;\n    private List<String> dataList;\n    \n    public ComprehensiveTest() {\n        this.dataList = new ArrayList<>();\n    }\n    \n    /**\n     * 数据处理方法\n     */\n    public void processData(List<String> input) {\n        if (input == null || input.isEmpty()) {\n            return;\n        }\n        \n        for (String item : input) {\n            if (item != null && !item.trim().isEmpty()) {\n                dataList.add(item.trim());\n            }\n        }\n    }\n}",
+  "fileName": "ComprehensiveTest.java"
+}
+
+###

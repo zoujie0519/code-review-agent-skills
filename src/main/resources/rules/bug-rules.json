@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "id": "BUG-001",
+      "name": "空Catch块",
+      "description": "检测空的异常处理块",
+      "severity": "HIGH",
+      "enabled": true
+    },
+    {
+      "id": "BUG-002",
+      "name": "资源泄漏",
+      "description": "检测未正确关闭的资源",
+      "severity": "HIGH",
+      "enabled": true
+    },
+    {
+      "id": "BUG-003",
+      "name": "字符串比较",
+      "description": "检测使用==比较字符串",
+      "severity": "MEDIUM",
+      "enabled": true
+    }
+  ]
+}

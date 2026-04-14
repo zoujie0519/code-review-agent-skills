@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "id": "SEC-001",
+      "name": "SQL注入检测",
+      "description": "检测字符串拼接构建SQL语句",
+      "severity": "CRITICAL",
+      "enabled": true
+    },
+    {
+      "id": "SEC-002",
+      "name": "硬编码密码",
+      "description": "检测代码中硬编码的密码或密钥",
+      "severity": "HIGH",
+      "enabled": true
+    },
+    {
+      "id": "SEC-003",
+      "name": "XSS漏洞",
+      "description": "检测未转义的用户输入",
+      "severity": "HIGH",
+      "enabled": true
+    }
+  ]
+}
