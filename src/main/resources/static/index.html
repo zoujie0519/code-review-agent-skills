@@ -194,10 +194,9 @@
 
       @media (min-width: 1024px) {
         .sidebar {
-          flex-direction: column;
+          flex-direction: row;
           align-items: flex-start;
           justify-content: flex-start;
-          width: 200px;
           padding: 20px;
           gap: 16px;
           flex-shrink: 0;
@@ -248,6 +247,7 @@
         font-weight: 600;
         color: var(--neutral-700);
         letter-spacing: -0.3px;
+        width: 200px;
       }
 
       @media (min-width: 1024px) {
@@ -283,8 +283,9 @@
 
       @media (min-width: 1024px) {
         .status-section {
-          flex-direction: column;
+          flex-direction: row;
           align-items: flex-start;
+          justify-content: flex-end;
           gap: 8px;
           width: 100%;
         }
@@ -504,7 +505,7 @@
       /* Code Input */
       .code-input {
         width: 100%;
-        min-height: 280px;
+        min-height: 574px;
         padding: 12px;
         background: var(--neutral-800);
         border: 2px solid transparent;
@@ -519,7 +520,7 @@
 
       @media (min-width: 1024px) {
         .code-input {
-          min-height: 320px;
+          min-height: 574px;
           padding: 14px;
           font-size: 13px;
         }
@@ -744,15 +745,37 @@
         }
       }
 
-      .loading-desc {
-        font-size: 12px;
-        color: var(--neutral-400);
+      .loading-desc-container {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 8px;
       }
 
       @media (min-width: 1024px) {
-        .loading-desc {
+        .loading-desc-container {
+          gap: 8px;
+        }
+      }
+
+      .loading-desc-item {
+        font-size: 12px;
+        color: var(--neutral-500);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.4s ease;
+        text-align: left;
+      }
+
+      @media (min-width: 1024px) {
+        .loading-desc-item {
           font-size: 13px;
         }
+      }
+
+      .loading-desc-item.show {
+        opacity: 1;
+        transform: translateY(0);
       }
 
       .loading-progress {
@@ -831,9 +854,6 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--neutral-200);
       }
 
       .result-time {
@@ -862,7 +882,7 @@
         background: var(--neutral-50);
         border-radius: var(--radius-sm);
         border: 1px solid var(--neutral-200);
-        max-height: 350px;
+        max-height: 676px;
         overflow-y: auto;
         font-size: 12px;
         line-height: 1.7;
@@ -871,7 +891,7 @@
       @media (min-width: 1024px) {
         .report-output {
           padding: 16px;
-          max-height: 420px;
+          max-height: 676px;
           font-size: 13px;
           line-height: 1.8;
         }
@@ -1051,14 +1071,14 @@
       /* Footer */
       .footer {
         text-align: center;
-        padding: 16px;
+        padding: 6px;
         color: var(--neutral-400);
         font-size: 11px;
       }
 
       @media (min-width: 1024px) {
         .footer {
-          padding: 20px;
+          padding: 6px;
           font-size: 12px;
         }
       }
@@ -1174,7 +1194,7 @@
                 <div class="panel-header">
                   <div class="panel-title">
                     <div class="panel-title-icon input-icon">📝</div>
-                    代码输入
+                    待检测代码
                   </div>
                 </div>
                 <div class="panel-content">
@@ -1233,6 +1253,11 @@ public class Example {
                     <div class="panel-title-icon output-icon">📊</div>
                     审查报告
                   </div>
+                  <div class="result-meta">
+                    <span class="result-time" id="executionTime">
+                      ⏱️ 0ms
+                    </span>
+                  </div>
                 </div>
                 <div class="panel-content">
                   <div class="output-content">
@@ -1247,7 +1272,7 @@ public class Example {
                     <div class="loading" id="loading">
                       <div class="spinner"></div>
                       <div class="loading-title">正在分析代码</div>
-                      <div class="loading-desc">检查风格、安全、性能...</div>
+                      <div class="loading-desc-container" id="loadingDescContainer"></div>
                       <div class="loading-progress">
                         <div class="loading-dot"></div>
                         <div class="loading-dot"></div>
@@ -1257,11 +1282,6 @@ public class Example {
 
                     <!-- Result Section -->
                     <div class="result-section" id="resultSection">
-                      <div class="result-meta">
-                        <span class="result-time" id="executionTime">
-                          ⏱️ 0ms
-                        </span>
-                      </div>
                       <div class="report-output" id="reportOutput"></div>
                     </div>
                   </div>
@@ -1271,7 +1291,7 @@ public class Example {
 
             <!-- Footer -->
             <footer class="footer">
-              Powered by <a href="#">Claude AI</a> · Spring AI
+              Powered by <a href="#">Jensen</a> · Spring AI
             </footer>
           </main>
         </div>
@@ -1320,6 +1340,9 @@ public class Example {
         document.getElementById("loading").classList.add("show");
         document.getElementById("reviewBtn").disabled = true;
 
+        // 启动轮播
+        startCarousel();
+
         try {
           const startTime = Date.now();
           const response = await fetch(`${API_BASE}/api/review/code`, {
@@ -1347,6 +1370,8 @@ public class Example {
         } finally {
           document.getElementById("loading").classList.remove("show");
           document.getElementById("reviewBtn").disabled = false;
+          // 停止轮播
+          stopCarousel();
         }
       }
 
@@ -1388,6 +1413,45 @@ public class Example {
       function clearCode() {
         document.getElementById("codeInput").value = "";
         clearResult();
+        stopCarousel();
+      }
+
+      // 轮播相关变量
+      let showIntervals = [];
+      const loadingTexts = [
+        "🤖 Bug 检测...",
+        "🤖 复杂度分析...",
+        "🤖 代码风格检查...",
+        "🤖 最佳实践检查...",
+        "🤖 性能分析...",
+        "🤖 文档检查...",
+        "🤖 安全漏洞扫描...",
+      ];
+
+      // 启动加载动画（所有文字依次显示）
+      function startCarousel() {
+        const container = document.getElementById("loadingDescContainer");
+        container.innerHTML = "";
+        
+        // 创建所有文本元素
+        loadingTexts.forEach((text, index) => {
+          const div = document.createElement("div");
+          div.className = "loading-desc-item";
+          div.textContent = text;
+          container.appendChild(div);
+          
+          // 依次显示每个文本，间隔 300ms
+          const timeout = setTimeout(() => {
+            div.classList.add("show");
+          }, index * 300);
+          showIntervals.push(timeout);
+        });
+      }
+
+      // 停止加载动画
+      function stopCarousel() {
+        showIntervals.forEach(clearTimeout);
+        showIntervals = [];
       }
 
       // 加载示例代码
