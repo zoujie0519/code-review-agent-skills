@@ -1,587 +1,1412 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Review Agent - 能力验证</title>
-    <!-- Markdown 渲染库 -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Review Agent - 智能代码审查</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      :root {
+        /* Primary Palette - Fresh Teal */
+        --primary-50: #e6fbf4;
+        --primary-100: #ccf7e9;
+        --primary-200: #99efda;
+        --primary-300: #66e7c8;
+        --primary-400: #33dfb6;
+        --primary-500: #0fd9a4;
+        --primary-600: #0cb88a;
+        --primary-700: #099770;
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+        /* Accent - Warm Amber */
+        --accent-50: #fff8e6;
+        --accent-100: #ffefc2;
+        --accent-200: #ffe082;
+        --accent-300: #ffd54f;
+        --accent-400: #ffca28;
+        --accent-500: #ffb300;
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
+        /* Neutral */
+        --neutral-50: #fafbfc;
+        --neutral-100: #f2f4f6;
+        --neutral-200: #e3e7eb;
+        --neutral-300: #c9cdd3;
+        --neutral-400: #9da5b0;
+        --neutral-500: #6b7785;
+        --neutral-600: #4a5568;
+        --neutral-700: #2d3748;
+        --neutral-800: #1a202c;
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+        /* Semantic */
+        --success: #10b981;
+        --warning: #f59e0b;
+        --error: #ef4444;
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
+        /* Shadows */
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+        --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+        --shadow-glow: 0 0 40px rgba(15, 217, 164, 0.15);
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
+        /* Radius */
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 24px;
 
-        .content {
-            padding: 30px;
-        }
+        /* Transitions */
+        --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
 
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+      body {
+        font-family:
+          "Sora",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: var(--neutral-50);
+        min-height: 100vh;
+        color: var(--neutral-700);
+        line-height: 1.6;
+      }
 
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #dc3545;
-            animation: pulse 2s infinite;
-        }
+      /* Decorative Background */
+      .bg-pattern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+      }
 
-        .status-dot.online {
-            background: #28a745;
-        }
+      .bg-pattern::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -30%;
+        width: 80vw;
+        height: 80vw;
+        background: radial-gradient(
+          circle,
+          rgba(15, 217, 164, 0.08) 0%,
+          transparent 70%
+        );
+        animation: float-slow 20s ease-in-out infinite;
+      }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+      .bg-pattern::after {
+        content: "";
+        position: absolute;
+        bottom: -30%;
+        left: -20%;
+        width: 60vw;
+        height: 60vw;
+        background: radial-gradient(
+          circle,
+          rgba(255, 179, 0, 0.06) 0%,
+          transparent 70%
+        );
+        animation: float-slow 25s ease-in-out infinite reverse;
+      }
 
-        .input-section {
-            margin-bottom: 20px;
+      @keyframes float-slow {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
         }
-
-        .input-section label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
+        50% {
+          transform: translate(30px, -30px) scale(1.05);
         }
+      }
 
+      /* Grid Pattern Overlay */
+      .grid-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 0;
+        background-image:
+          linear-gradient(rgba(15, 217, 164, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 217, 164, 0.02) 1px, transparent 1px);
+        background-size: 60px 60px;
+      }
+
+      /* Main Layout */
+      .app {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        padding: 16px;
+      }
+
+      .container {
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      /* Desktop Layout: Sidebar + Content */
+      .layout-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      @media (min-width: 1024px) {
+        .layout-wrapper {
+          flex-direction: row;
+          gap: 20px;
+        }
+      }
+
+      /* Sidebar (Header + Status) */
+      .sidebar {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--neutral-200);
+        animation: slideDown 0.5s ease-out;
+      }
+
+      @media (min-width: 1024px) {
+        .sidebar {
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: flex-start;
+          width: 200px;
+          padding: 20px;
+          gap: 16px;
+          flex-shrink: 0;
+        }
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Logo */
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-500) 0%,
+          var(--primary-600) 100%
+        );
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-sm), var(--shadow-glow);
+        font-size: 18px;
+        transition: transform var(--transition-base);
+      }
+
+      .logo-icon:hover {
+        transform: rotate(-5deg) scale(1.05);
+      }
+
+      .logo-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--neutral-700);
+        letter-spacing: -0.3px;
+      }
+
+      @media (min-width: 1024px) {
+        .logo-text {
+          font-size: 18px;
+        }
+      }
+
+      /* Sidebar Title */
+      .sidebar-title {
+        display: none;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--neutral-400);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+
+      @media (min-width: 1024px) {
+        .sidebar-title {
+          display: block;
+        }
+      }
+
+      /* Status Bar in Sidebar */
+      .status-section {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+      }
+
+      @media (min-width: 1024px) {
+        .status-section {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+          width: 100%;
+        }
+      }
+
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--neutral-500);
+      }
+
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--neutral-300);
+        transition: all var(--transition-base);
+      }
+
+      .status-dot.online {
+        background: var(--success);
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        animation: pulse-glow 2s infinite;
+      }
+
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        }
+      }
+
+      .api-badge {
+        padding: 3px 8px;
+        background: var(--neutral-100);
+        border-radius: 6px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--neutral-600);
+      }
+
+      /* Main Content Area */
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        animation: slideUp 0.5s ease-out 0.1s both;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Main Grid Layout */
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      @media (min-width: 1024px) {
+        .main-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+      }
+
+      @media (min-width: 1280px) {
+        .main-grid {
+          gap: 24px;
+        }
+      }
+
+      /* Panel Styles */
+      .panel {
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--neutral-200);
+        overflow: hidden;
+        transition: box-shadow var(--transition-base);
+      }
+
+      .panel:hover {
+        box-shadow: var(--shadow-md);
+      }
+
+      .panel-header {
+        padding: 12px 16px;
+        background: linear-gradient(180deg, var(--neutral-50) 0%, white 100%);
+        border-bottom: 1px solid var(--neutral-200);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      @media (min-width: 1024px) {
+        .panel-header {
+          padding: 14px 20px;
+        }
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--neutral-700);
+      }
+
+      .panel-title-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      }
+
+      .panel-title-icon.input-icon {
+        background: var(--primary-50);
+        color: var(--primary-600);
+      }
+
+      .panel-title-icon.output-icon {
+        background: var(--accent-50);
+        color: var(--accent-500);
+      }
+
+      .panel-content {
+        padding: 12px 16px 16px;
+      }
+
+      @media (min-width: 1024px) {
+        .panel-content {
+          padding: 16px 20px 20px;
+        }
+      }
+
+      /* Input Panel */
+      .input-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 420px;
+      }
+
+      @media (min-width: 1024px) {
+        .input-panel {
+          min-height: 500px;
+        }
+      }
+
+      .sample-buttons {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+
+      .sample-btn {
+        padding: 5px 10px;
+        background: var(--neutral-50);
+        border: 1px solid var(--neutral-200);
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--neutral-600);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      @media (min-width: 1024px) {
+        .sample-btn {
+          padding: 6px 12px;
+          font-size: 12px;
+          gap: 5px;
+        }
+      }
+
+      .sample-btn:hover {
+        background: var(--primary-50);
+        border-color: var(--primary-200);
+        color: var(--primary-700);
+      }
+
+      .sample-btn.good:hover {
+        border-color: var(--success);
+        color: var(--success);
+      }
+      .sample-btn.bad:hover {
+        border-color: var(--error);
+        color: var(--error);
+      }
+      .sample-btn.security:hover {
+        border-color: var(--warning);
+        color: var(--warning);
+      }
+
+      /* Code Input */
+      .code-input {
+        width: 100%;
+        min-height: 280px;
+        padding: 12px;
+        background: var(--neutral-800);
+        border: 2px solid transparent;
+        border-radius: var(--radius-sm);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        line-height: 1.7;
+        color: #e2e8f0;
+        resize: vertical;
+        transition: all var(--transition-base);
+      }
+
+      @media (min-width: 1024px) {
         .code-input {
-            width: 100%;
-            min-height: 300px;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            resize: vertical;
-            transition: border-color 0.3s;
+          min-height: 320px;
+          padding: 14px;
+          font-size: 13px;
         }
+      }
 
-        .code-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+      .code-input::placeholder {
+        color: var(--neutral-400);
+      }
 
+      .code-input:focus {
+        outline: none;
+        border-color: var(--primary-500);
+        box-shadow: 0 0 0 3px rgba(15, 217, 164, 0.1);
+      }
+
+      /* Buttons */
+      .button-group {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      @media (min-width: 1024px) {
         .button-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+          gap: 10px;
         }
+      }
 
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-family: "Sora", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      @media (min-width: 1024px) {
         .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
+          padding: 12px 24px;
+          font-size: 14px;
+          gap: 7px;
         }
+      }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-500) 0%,
+          var(--primary-600) 100%
+        );
+        color: white;
+        box-shadow:
+          var(--shadow-sm),
+          0 2px 12px rgba(15, 217, 164, 0.25);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow:
+          var(--shadow-md),
+          0 4px 20px rgba(15, 217, 164, 0.35);
+      }
+
+      .btn-primary:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background: var(--neutral-100);
+        color: var(--neutral-600);
+      }
+
+      .btn-secondary:hover {
+        background: var(--neutral-200);
+        color: var(--neutral-700);
+      }
+
+      /* Output Panel */
+      .output-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 420px;
+      }
+
+      @media (min-width: 1024px) {
+        .output-panel {
+          min-height: 500px;
         }
+      }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      .output-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Empty State */
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 30px 16px;
+        text-align: center;
+      }
+
+      @media (min-width: 1024px) {
+        .empty-state {
+          padding: 40px 20px;
         }
+      }
 
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
+      .empty-icon {
+        width: 56px;
+        height: 56px;
+        background: var(--neutral-100);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 12px;
+      }
+
+      @media (min-width: 1024px) {
+        .empty-icon {
+          width: 64px;
+          height: 64px;
+          font-size: 28px;
         }
+      }
 
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
+      .empty-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--neutral-600);
+        margin-bottom: 4px;
+      }
+
+      @media (min-width: 1024px) {
+        .empty-title {
+          font-size: 16px;
         }
+      }
 
-        .btn-secondary:hover {
-            background: #5a6268;
+      .empty-desc {
+        font-size: 12px;
+        color: var(--neutral-400);
+      }
+
+      @media (min-width: 1024px) {
+        .empty-desc {
+          font-size: 13px;
         }
+      }
 
-        .result-section {
-            display: none;
-        }
+      /* Loading State */
+      .loading {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px;
+        text-align: center;
+      }
 
-        .result-section.show {
-            display: block;
-        }
-
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .result-header h2 {
-            color: #333;
-        }
-
-        .execution-time {
-            background: #e3f2fd;
-            padding: 5px 15px;
-            border-radius: 20px;
-            color: #1976d2;
-            font-weight: bold;
-        }
-
-        .report-output {
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-            line-height: 1.8;
-            max-height: 600px;
-            overflow-y: auto;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Markdown 样式 */
-        .report-output h1 {
-            color: #667eea;
-            font-size: 2em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #667eea;
-        }
-
-        .report-output h2 {
-            color: #764ba2;
-            font-size: 1.6em;
-            margin-top: 30px;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .report-output h3 {
-            color: #555;
-            font-size: 1.3em;
-            margin-top: 25px;
-            margin-bottom: 12px;
-        }
-
-        .report-output h4 {
-            color: #666;
-            font-size: 1.1em;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-
-        .report-output p {
-            margin-bottom: 12px;
-            color: #333;
-        }
-
-        .report-output table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            background: white;
-        }
-
-        .report-output th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px;
-            text-align: left;
-            font-weight: bold;
-        }
-
-        .report-output td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .report-output tr:hover {
-            background-color: #f5f5f5;
-        }
-
-        .report-output ul, .report-output ol {
-            margin-left: 25px;
-            margin-bottom: 15px;
-        }
-
-        .report-output li {
-            margin-bottom: 8px;
-            color: #444;
-        }
-
-        .report-output blockquote {
-            border-left: 4px solid #667eea;
-            padding: 12px 20px;
-            margin: 15px 0;
-            background: #f8f9fa;
-            color: #555;
-            font-style: italic;
-        }
-
-        .report-output code {
-            background: #f4f4f4;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            color: #d63384;
-        }
-
-        .report-output pre {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 15px;
-            border-radius: 5px;
-            overflow-x: auto;
-            margin: 15px 0;
-        }
-
-        .report-output pre code {
-            background: none;
-            color: inherit;
-            padding: 0;
-        }
-
-        .report-output hr {
-            border: none;
-            border-top: 2px solid #e0e0e0;
-            margin: 25px 0;
-        }
-
-        .report-output strong {
-            color: #667eea;
-            font-weight: bold;
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #dc3545;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
+      @media (min-width: 1024px) {
         .loading {
-            display: none;
-            text-align: center;
-            padding: 40px;
+          padding: 50px 20px;
         }
+      }
 
-        .loading.show {
-            display: block;
-        }
+      .loading.show {
+        display: flex;
+      }
 
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--neutral-200);
+        border-top-color: var(--primary-500);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+      }
+
+      @media (min-width: 1024px) {
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+          width: 48px;
+          height: 48px;
+        }
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--neutral-700);
+        margin-bottom: 4px;
+      }
+
+      @media (min-width: 1024px) {
+        .loading-title {
+          font-size: 16px;
+        }
+      }
+
+      .loading-desc {
+        font-size: 12px;
+        color: var(--neutral-400);
+      }
+
+      @media (min-width: 1024px) {
+        .loading-desc {
+          font-size: 13px;
+        }
+      }
+
+      .loading-progress {
+        display: flex;
+        gap: 5px;
+        margin-top: 16px;
+      }
+
+      .loading-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--primary-200);
+        border-radius: 50%;
+        animation: loading-bounce 1.4s ease-in-out infinite;
+      }
+
+      .loading-dot:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .loading-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .loading-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes loading-bounce {
+        0%,
+        80%,
+        100% {
+          transform: scale(0.6);
+          background: var(--primary-200);
+        }
+        40% {
+          transform: scale(1);
+          background: var(--primary-500);
+        }
+      }
+
+      /* Error State */
+      .error-message {
+        display: none;
+        padding: 10px 12px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: var(--radius-sm);
+        color: #dc2626;
+        font-size: 12px;
+        margin-top: 12px;
+        align-items: center;
+        gap: 8px;
+      }
+
+      @media (min-width: 1024px) {
+        .error-message {
+          padding: 12px 16px;
+          font-size: 13px;
+        }
+      }
+
+      .error-message.show {
+        display: flex;
+      }
+
+      /* Result Section */
+      .result-section {
+        display: none;
+        flex-direction: column;
+      }
+
+      .result-section.show {
+        display: flex;
+      }
+
+      .result-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--neutral-200);
+      }
+
+      .result-time {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        background: var(--primary-50);
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--primary-700);
+      }
+
+      @media (min-width: 1024px) {
+        .result-time {
+          font-size: 12px;
+          padding: 5px 12px;
+        }
+      }
+
+      /* Report Output - Markdown Styles */
+      .report-output {
+        flex: 1;
+        padding: 12px;
+        background: var(--neutral-50);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--neutral-200);
+        max-height: 350px;
+        overflow-y: auto;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      @media (min-width: 1024px) {
+        .report-output {
+          padding: 16px;
+          max-height: 420px;
+          font-size: 13px;
+          line-height: 1.8;
+        }
+      }
+
+      .report-output::-webkit-scrollbar {
+        width: 5px;
+      }
+
+      .report-output::-webkit-scrollbar-track {
+        background: var(--neutral-200);
+        border-radius: 3px;
+      }
+
+      .report-output::-webkit-scrollbar-thumb {
+        background: var(--neutral-400);
+        border-radius: 3px;
+      }
+
+      .report-output h1 {
+        font-size: 1.5em;
+        font-weight: 700;
+        color: var(--neutral-800);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--primary-300);
+      }
+
+      .report-output h2 {
+        font-size: 1.3em;
+        font-weight: 600;
+        color: var(--neutral-700);
+        margin-top: 20px;
+        margin-bottom: 10px;
+        padding-left: 10px;
+        border-left: 3px solid var(--primary-500);
+      }
+
+      .report-output h3 {
+        font-size: 1.15em;
+        font-weight: 600;
+        color: var(--neutral-600);
+        margin-top: 16px;
+        margin-bottom: 8px;
+      }
+
+      .report-output p {
+        color: var(--neutral-600);
+        margin-bottom: 10px;
+      }
+
+      .report-output table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0;
+        background: white;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .report-output th {
+        background: var(--primary-600);
+        color: white;
+        padding: 8px 10px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 11px;
+      }
+
+      @media (min-width: 1024px) {
+        .report-output th {
+          padding: 10px 12px;
+          font-size: 12px;
+        }
+      }
+
+      .report-output td {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--neutral-200);
+        font-size: 11px;
+        color: var(--neutral-600);
+      }
+
+      @media (min-width: 1024px) {
+        .report-output td {
+          padding: 10px 12px;
+          font-size: 12px;
+        }
+      }
+
+      .report-output tr:last-child td {
+        border-bottom: none;
+      }
+
+      .report-output tr:hover td {
+        background: var(--neutral-50);
+      }
+
+      .report-output ul,
+      .report-output ol {
+        margin-left: 20px;
+        margin-bottom: 12px;
+      }
+
+      .report-output li {
+        margin-bottom: 6px;
+        color: var(--neutral-600);
+      }
+
+      .report-output li::marker {
+        color: var(--primary-500);
+      }
+
+      .report-output blockquote {
+        margin: 12px 0;
+        padding: 10px 12px;
+        background: var(--accent-50);
+        border-left: 3px solid var(--accent-400);
+        border-radius: 0 6px 6px 0;
+        color: var(--neutral-600);
+        font-style: italic;
+      }
+
+      .report-output code {
+        background: var(--neutral-200);
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.85em;
+        color: var(--primary-700);
+      }
+
+      .report-output pre {
+        background: var(--neutral-800);
+        color: #e2e8f0;
+        padding: 12px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 12px 0;
+      }
+
+      .report-output pre code {
+        background: none;
+        color: inherit;
+        padding: 0;
+      }
+
+      .report-output hr {
+        border: none;
+        border-top: 1px solid var(--neutral-200);
+        margin: 20px 0;
+      }
+
+      .report-output strong {
+        color: var(--neutral-800);
+        font-weight: 600;
+      }
+
+      /* Animations */
+      @keyframes resultFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .result-section.show .result-meta,
+      .result-section.show .report-output {
+        animation: resultFadeIn 0.3s ease-out;
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 16px;
+        color: var(--neutral-400);
+        font-size: 11px;
+      }
+
+      @media (min-width: 1024px) {
+        .footer {
+          padding: 20px;
+          font-size: 12px;
+        }
+      }
+
+      .footer a {
+        color: var(--primary-600);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .footer a:hover {
+        text-decoration: underline;
+      }
+
+      /* Mobile Optimizations */
+      @media (max-width: 640px) {
+        .app {
+          padding: 10px;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .sidebar {
+          padding: 10px 12px;
         }
 
-        .sample-code {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #ffc107;
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 16px;
         }
 
-        .sample-code h3 {
-            margin-bottom: 10px;
-            color: #856404;
+        .logo-text {
+          font-size: 14px;
+        }
+
+        .panel-header {
+          padding: 10px 12px;
+        }
+
+        .panel-content {
+          padding: 10px 12px 12px;
         }
 
         .sample-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+          gap: 4px;
         }
 
         .sample-btn {
-            padding: 8px 16px;
-            background: white;
-            border: 2px solid #ffc107;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
+          padding: 4px 8px;
+          font-size: 10px;
         }
 
-        .sample-btn:hover {
-            background: #ffc107;
-            color: white;
+        .code-input {
+          min-height: 240px;
+          font-size: 11px;
+          padding: 10px;
         }
+
+        .button-group {
+          flex-direction: column;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          justify-content: center;
+          font-size: 12px;
+        }
+
+        .input-panel,
+        .output-panel {
+          min-height: auto;
+        }
+
+        .report-output {
+          max-height: 300px;
+        }
+      }
     </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔍 Code Review Agent</h1>
-            <p>基于 Spring AI + Agent Skills 的智能代码审查系统</p>
-        </div>
+  </head>
+  <body>
+    <div class="bg-pattern"></div>
+    <div class="grid-overlay"></div>
 
-        <div class="content">
-            <!-- 状态栏 -->
-            <div class="status-bar">
-                <div class="status-indicator">
-                    <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">检查服务状态...</span>
+    <div class="app">
+      <div class="container">
+        <!-- Layout Wrapper -->
+        <div class="layout-wrapper">
+          <!-- Main Content -->
+          <main class="main-content">
+            <!-- Sidebar (Header + Status) -->
+            <aside class="sidebar">
+              <div class="logo">
+                <div class="logo-icon">
+                  <span>✨</span>
                 </div>
-                <div>
-                    <strong>API:</strong> <span id="apiUrl">http://localhost:8080</span>
-                </div>
-            </div>
+                <span class="logo-text">Code Review Agent</span>
+              </div>
 
-            <!-- 示例代码 -->
-            <div class="sample-code">
-                <h3>📝 快速测试 - 点击加载示例代码</h3>
-                <div class="sample-buttons">
-                    <button class="sample-btn" onclick="loadSample('good')">✅ 优质代码</button>
-                    <button class="sample-btn" onclick="loadSample('bad')">❌ 问题代码</button>
-                    <button class="sample-btn" onclick="loadSample('security')">🔒 安全问题</button>
-                    <button class="sample-btn" onclick="clearCode()">🗑️ 清空</button>
+              <div class="status-section">
+                <span class="sidebar-title">服务状态</span>
+                <div class="status-item">
+                  <div class="status-dot" id="statusDot"></div>
+                  <span id="statusText">检查中...</span>
                 </div>
-            </div>
-
-            <!-- 输入区域 -->
-            <div class="input-section">
-                <label for="codeInput">请输入要审查的 Java 代码：</label>
-                <textarea 
-                    id="codeInput" 
-                    class="code-input" 
-                    placeholder="// 在这里粘贴你的 Java 代码...
+                <div class="status-item">
+                  <span class="api-badge" id="apiUrl">localhost:8080</span>
+                </div>
+              </div>
+            </aside>
+            <!-- Main Grid -->
+            <div class="main-grid">
+              <!-- Input Panel -->
+              <div class="panel input-panel">
+                <div class="panel-header">
+                  <div class="panel-title">
+                    <div class="panel-title-icon input-icon">📝</div>
+                    代码输入
+                  </div>
+                </div>
+                <div class="panel-content">
+                  <div class="sample-buttons">
+                    <button
+                      class="sample-btn good"
+                      onclick="loadSample('good')"
+                    >
+                      ✅ 优质
+                    </button>
+                    <button class="sample-btn bad" onclick="loadSample('bad')">
+                      ❌ 问题
+                    </button>
+                    <button
+                      class="sample-btn security"
+                      onclick="loadSample('security')"
+                    >
+                      🔒 安全
+                    </button>
+                    <button class="sample-btn" onclick="clearCode()">
+                      🗑️ 清空
+                    </button>
+                  </div>
+                  <textarea
+                    id="codeInput"
+                    class="code-input"
+                    placeholder='// 在这里粘贴你的 Java 代码...
 public class Example {
     public void method() {
-        System.out.println(&quot;Hello World&quot;);
+        System.out.println("Hello World");
     }
-}"
-                ></textarea>
-            </div>
-
-            <!-- 按钮组 -->
-            <div class="button-group">
-                <button class="btn btn-primary" id="reviewBtn" onclick="submitReview()">
-                    🚀 开始审查
-                </button>
-                <button class="btn btn-secondary" onclick="clearResult()">
-                    🔄 清除结果
-                </button>
-            </div>
-
-            <!-- 错误信息 -->
-            <div class="error-message" id="errorMessage"></div>
-
-            <!-- 加载中 -->
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>正在进行智能代码审查，请稍候...</p>
-                <p style="color: #666; font-size: 14px;">AI 正在分析代码风格、安全性、性能和最佳实践</p>
-            </div>
-
-            <!-- 结果区域 -->
-            <div class="result-section" id="resultSection">
-                <div class="result-header">
-                    <h2>🎯 审查报告</h2>
-                    <span class="execution-time" id="executionTime"></span>
+}'
+                  ></textarea>
+                  <div class="button-group">
+                    <button
+                      class="btn btn-primary"
+                      id="reviewBtn"
+                      onclick="submitReview()"
+                    >
+                      🚀 开始审查
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearResult()">
+                      🔄 清除
+                    </button>
+                  </div>
+                  <div class="error-message" id="errorMessage">
+                    <span id="errorText"></span>
+                  </div>
                 </div>
-                <div class="report-output" id="reportOutput"></div>
+              </div>
+
+              <!-- Output Panel -->
+              <div class="panel output-panel">
+                <div class="panel-header">
+                  <div class="panel-title">
+                    <div class="panel-title-icon output-icon">📊</div>
+                    审查报告
+                  </div>
+                </div>
+                <div class="panel-content">
+                  <div class="output-content">
+                    <!-- Empty State -->
+                    <div class="empty-state" id="emptyState">
+                      <div class="empty-icon">📋</div>
+                      <div class="empty-title">等待代码输入</div>
+                      <div class="empty-desc">输入代码并点击「开始审查」</div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div class="loading" id="loading">
+                      <div class="spinner"></div>
+                      <div class="loading-title">正在分析代码</div>
+                      <div class="loading-desc">检查风格、安全、性能...</div>
+                      <div class="loading-progress">
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                      </div>
+                    </div>
+
+                    <!-- Result Section -->
+                    <div class="result-section" id="resultSection">
+                      <div class="result-meta">
+                        <span class="result-time" id="executionTime">
+                          ⏱️ 0ms
+                        </span>
+                      </div>
+                      <div class="report-output" id="reportOutput"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            <!-- Footer -->
+            <footer class="footer">
+              Powered by <a href="#">Claude AI</a> · Spring AI
+            </footer>
+          </main>
         </div>
+      </div>
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8080';
+      const API_BASE = "http://localhost:8080";
 
-        // 页面加载时检查服务状态
-        window.onload = function() {
-            checkHealth();
-        };
+      // 页面加载时检查服务状态
+      window.onload = function () {
+        checkHealth();
+      };
 
-        // 检查服务健康状态
-        async function checkHealth() {
-            try {
-                const response = await fetch(`${API_BASE}/api/review/health`);
-                if (response.ok) {
-                    document.getElementById('statusDot').classList.add('online');
-                    document.getElementById('statusText').textContent = '服务正常运行';
-                } else {
-                    throw new Error('服务异常');
-                }
-            } catch (error) {
-                document.getElementById('statusText').textContent = '服务未启动或无法连接';
-                showError('无法连接到服务器，请确保应用已启动在 http://localhost:8080');
-            }
+      // 检查服务健康状态
+      async function checkHealth() {
+        try {
+          const response = await fetch(`${API_BASE}/api/review/health`);
+          if (response.ok) {
+            document.getElementById("statusDot").classList.add("online");
+            document.getElementById("statusText").textContent = "在线";
+          } else {
+            throw new Error("服务异常");
+          }
+        } catch (error) {
+          document.getElementById("statusText").textContent = "离线";
+          showError("无法连接服务器，请确保应用已启动");
+        }
+      }
+
+      // 提交代码审查
+      async function submitReview() {
+        const code = document.getElementById("codeInput").value.trim();
+
+        if (!code) {
+          showError("请输入要审查的代码");
+          return;
         }
 
-        // 提交代码审查
-        async function submitReview() {
-            const code = document.getElementById('codeInput').value.trim();
-            
-            if (!code) {
-                showError('请输入要审查的代码');
-                return;
-            }
+        // 隐藏之前的结果和错误
+        hideError();
+        document.getElementById("emptyState").style.display = "none";
+        document.getElementById("resultSection").classList.remove("show");
 
-            // 隐藏之前的结果和错误
-            hideError();
-            document.getElementById('resultSection').classList.remove('show');
-            
-            // 显示加载状态
-            document.getElementById('loading').classList.add('show');
-            document.getElementById('reviewBtn').disabled = true;
+        // 显示加载状态
+        document.getElementById("loading").classList.add("show");
+        document.getElementById("reviewBtn").disabled = true;
 
-            try {
-                const startTime = Date.now();
-                const response = await fetch(`${API_BASE}/api/review/code`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        code: code,
-                        fileName: 'Test.java'
-                    })
-                });
+        try {
+          const startTime = Date.now();
+          const response = await fetch(`${API_BASE}/api/review/code`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              code: code,
+              fileName: "Test.java",
+            }),
+          });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
 
-                const data = await response.json();
-                const executionTime = Date.now() - startTime;
+          const data = await response.json();
+          const executionTime = Date.now() - startTime;
 
-                // 显示结果
-                showResult(data.report, data.executionTimeMs || executionTime);
-                
-            } catch (error) {
-                showError(`审查失败: ${error.message}`);
-            } finally {
-                document.getElementById('loading').classList.remove('show');
-                document.getElementById('reviewBtn').disabled = false;
-            }
+          // 显示结果
+          showResult(data.report, data.executionTimeMs || executionTime);
+        } catch (error) {
+          showError(`审查失败: ${error.message}`);
+        } finally {
+          document.getElementById("loading").classList.remove("show");
+          document.getElementById("reviewBtn").disabled = false;
         }
+      }
 
-        // 显示结果
-        function showResult(report, executionTime) {
-            // 使用 marked.js 渲染 Markdown
-            const htmlContent = marked.parse(report);
-            document.getElementById('reportOutput').innerHTML = htmlContent;
-            document.getElementById('executionTime').textContent = `⏱️ ${executionTime}ms`;
-            document.getElementById('resultSection').classList.add('show');
-            
-            // 滚动到结果区域
-            document.getElementById('resultSection').scrollIntoView({ 
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
+      // 显示结果
+      function showResult(report, executionTime) {
+        // 使用 marked.js 渲染 Markdown
+        const htmlContent = marked.parse(report);
+        document.getElementById("reportOutput").innerHTML = htmlContent;
+        document.getElementById("executionTime").innerHTML =
+          `⏱️ ${executionTime}ms`;
+        document.getElementById("resultSection").classList.add("show");
 
-        // 显示错误
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('show');
-        }
+        // 滚动到结果区域
+        document.getElementById("resultSection").scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
 
-        // 隐藏错误
-        function hideError() {
-            document.getElementById('errorMessage').classList.remove('show');
-        }
+      // 显示错误
+      function showError(message) {
+        document.getElementById("errorText").textContent = message;
+        document.getElementById("errorMessage").classList.add("show");
+      }
 
-        // 清除结果
-        function clearResult() {
-            document.getElementById('resultSection').classList.remove('show');
-            hideError();
-        }
+      // 隐藏错误
+      function hideError() {
+        document.getElementById("errorMessage").classList.remove("show");
+      }
 
-        // 清空代码
-        function clearCode() {
-            document.getElementById('codeInput').value = '';
-            clearResult();
-        }
+      // 清除结果
+      function clearResult() {
+        document.getElementById("resultSection").classList.remove("show");
+        document.getElementById("emptyState").style.display = "flex";
+        hideError();
+      }
 
-        // 加载示例代码
-        function loadSample(type) {
-            const samples = {
-                good: `package com.example;
+      // 清空代码
+      function clearCode() {
+        document.getElementById("codeInput").value = "";
+        clearResult();
+      }
+
+      // 加载示例代码
+      function loadSample(type) {
+        const samples = {
+          good: `package com.example;
 
 /**
  * 用户服务类
  * @author Jensen
  */
 public class UserService {
-    
+
     private final UserRepository userRepository;
-    
+
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
-    
+
     /**
      * 根据ID获取用户
      * @param userId 用户ID
@@ -595,53 +1420,53 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
     }
 }`,
-                bad: `public class Test {
+          bad: `public class Test {
     public void method() {
         String name = "world";
         System.out.println("Hello " + name);
-        
+
         // 空catch块
         try {
             int result = 10 / 0;
         } catch (Exception e) {
         }
-        
+
         // 使用==比较字符串
         if (name == "test") {
             System.out.println("match");
         }
-        
+
         // 魔法数字
         if (age > 18) {
             System.out.println("adult");
         }
     }
 }`,
-                security: `public class SecurityExample {
-    
+          security: `public class SecurityExample {
+
     public void loginUser(String username, String password) {
         // SQL注入风险
         String sql = "SELECT * FROM users WHERE username='" + username + "'";
-        
+
         // 硬编码密码
         String adminPassword = "admin123";
-        
+
         if (password.equals(adminPassword)) {
             System.out.println("Login successful");
         }
     }
-    
+
     public void processFile(String filePath) {
         // 资源可能未关闭
         FileInputStream fis = new FileInputStream(filePath);
         // 处理文件...
     }
-}`
-            };
+}`,
+        };
 
-            document.getElementById('codeInput').value = samples[type];
-            clearResult();
-        }
+        document.getElementById("codeInput").value = samples[type];
+        clearResult();
+      }
     </script>
-</body>
+  </body>
 </html>
